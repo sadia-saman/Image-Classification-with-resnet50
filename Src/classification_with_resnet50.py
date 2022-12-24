@@ -1,31 +1,31 @@
-#import modules and packages to implement the code
+# import modules and packages to implement the code
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
+
 sns.set()
-import numpy as np # linear algebra
- # data processing, CSV file I/O (e.g. pd.read_csv)
+import numpy as np  # linear algebra
+# data processing, CSV file I/O (e.g. pd.read_csv)
 import tensorflow as tf
-from tensorflow import keras 
+from tensorflow import keras
 import PIL.Image
 import matplotlib.pyplot as mpimg
-import os 
-#from tensorflow.keras.preprocessing import image
+import os
+# from tensorflow.keras.preprocessing import image
 
 from tqdm import tqdm
 import warnings
+
 warnings.filterwarnings("ignore")
 import pathlib
 
-#import sklearn
-
-
+# import sklearn
 
 
 classes = ['NORMAL', 'COVID-19']
-#load the images from the directory ../data/non-enhanced
-non_enhanced = os.listdir('../data/Non-enhanced')  
+# load the images from the directory ../data/non-enhanced
+non_enhanced = os.listdir('../data/Non-enhanced')
 
 # definf parameter for resnet50
 IMG_SIZE = 224
@@ -47,12 +47,11 @@ val_ds = tf.keras.preprocessing.image_dataset_from_directory(
     seed=123,
     image_size=(IMG_SIZE, IMG_SIZE),
     batch_size=BATCH_SIZE)
-    
+
 class_names = train_ds.class_names
 print(class_names)
 
-
-#visualize the data
+# visualize the data
 plt.figure(figsize=(10, 10))
 for images, labels in train_ds.take(1):
     for i in range(9):
@@ -61,29 +60,28 @@ for images, labels in train_ds.take(1):
         plt.title(class_names[labels[i]])
         plt.axis("off")
 
-
-#configure the dataset for performance
+# configure the dataset for performance
 AUTOTUNE = tf.data.AUTOTUNE
 
 train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-#standardize the data
-normalization_layer = tf.keras.layers.experimental.preprocessing.Rescaling(1./255)
+# standardize the data
+normalization_layer = tf.keras.layers.experimental.preprocessing.Rescaling(1. / 255)
 
-#resize the data
+# resize the data
 data_augmentation = keras.Sequential(
     [
         keras.layers.experimental.preprocessing.RandomFlip("horizontal",
-                                                        input_shape=(IMG_SIZE,
-                                                                    IMG_SIZE,
-                                                                    3)),
+                                                           input_shape=(IMG_SIZE,
+                                                                        IMG_SIZE,
+                                                                        3)),
         keras.layers.experimental.preprocessing.RandomRotation(0.1),
         keras.layers.experimental.preprocessing.RandomZoom(0.1),
     ]
 )
 
-#load the resnet50 model
+# load the resnet50 model
 resnet50 = tf.keras.applications.ResNet50(
     include_top=False,
     weights="imagenet",
@@ -91,10 +89,10 @@ resnet50 = tf.keras.applications.ResNet50(
     pooling='avg'
 )
 
-#freeze the layers of the model
+# freeze the layers of the model
 resnet50.trainable = False
 
-#build the model
+# build the model
 model = keras.Sequential([
     data_augmentation,
     normalization_layer,
@@ -102,31 +100,28 @@ model = keras.Sequential([
     keras.layers.Dense(2, activation='softmax')
 ])
 
-#compile the model
+# compile the model
 model.compile(
     optimizer='adam',
     loss='sparse_categorical_crossentropy',
     metrics=['accuracy, precision, recall f1_score']
 )
 
-#train the model
+# train the model
 history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=EPOCHS
 )
 
-#plot the accuracy and loss
+# plot the accuracy and loss
 plt.plot(history.history['accuracy'], label='accuracy')
-plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.plot(history.history['val_accuracy'], label='val_accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.ylim([0.5, 1])
 plt.legend(loc='lower right')
 
+test_loss, test_acc, recall, precision, f1_score = model.evaluate(val_ds, verbose=2)
 
-test_loss, test_acc ,recall,precision,f1_score = model.evaluate(val_ds, verbose=2)
-
-print(test_acc,recall,precision,f1_score)
- 
-
+print(test_acc, recall, precision, f1_score)
